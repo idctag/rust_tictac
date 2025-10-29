@@ -1,9 +1,50 @@
 pub mod tic_tac {
-    use std::io;
+    use egui::{Button, CentralPanel, Grid};
 
-    struct Player {
+    pub struct Player {
         name: char,
         score: usize,
+    }
+
+    impl eframe::App for App {
+        fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+            CentralPanel::default().show(ctx, |ui| {
+                ui.vertical_centered(|ui| {
+                    ui.heading("Tic tac toe");
+                    ui.label(&self.message);
+                    ui.separator();
+                    ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                        Grid::new("tic_tac_board")
+                            .spacing([20.0, 20.0])
+                            .max_col_width(50.0)
+                            .show(ui, |ui| {
+                                for row in 0..3 {
+                                    for col in 0..3 {
+                                        let cell = self.board[row][col];
+                                        let label =
+                                            if cell == ' ' { " " } else { &cell.to_string() };
+                                        if ui.add_sized([50.0, 50.0], Button::new(label)).clicked()
+                                        {
+                                            self.make_move(row, col);
+                                        }
+                                    }
+                                    ui.end_row();
+                                }
+                            });
+                    });
+                    ui.separator();
+                    ui.label(format!(
+                        "Scores: X = {}, O = {}",
+                        self.player_one.score, self.player_two.score
+                    ));
+                    if self.game_over {
+                        if ui.button("Restar").clicked() {
+                            *self = App::default()
+                        }
+                    }
+                });
+            });
+        }
     }
 
     pub struct App {
@@ -12,7 +53,6 @@ pub mod tic_tac {
         game_over: bool,
         winner: Option<char>,
         message: String,
-        quit: bool,
         player_one: Player,
         player_two: Player,
     }
@@ -35,13 +75,12 @@ pub mod tic_tac {
                 game_over: false,
                 winner: None,
                 message: String::from("Player X's turn"),
-                quit: false,
             }
         }
     }
 
     impl App {
-        fn get_current_player(&self) -> &Player {
+        pub fn get_current_player(&self) -> &Player {
             if self.current_player_index == 0 {
                 &self.player_one
             } else {
@@ -49,7 +88,7 @@ pub mod tic_tac {
             }
         }
 
-        fn get_current_player_mut(&mut self) -> &mut Player {
+        pub fn get_current_player_mut(&mut self) -> &mut Player {
             if self.current_player_index == 0 {
                 &mut self.player_one
             } else {
@@ -57,19 +96,11 @@ pub mod tic_tac {
             }
         }
 
-        fn switch_player(&mut self) {
+        pub fn switch_player(&mut self) {
             self.current_player_index = if self.current_player_index == 0 { 1 } else { 0 }
         }
 
-        fn reset(&mut self) {
-            self.board = [[' '; 3]; 3];
-            self.current_player_index = 0;
-            self.game_over = false;
-            self.winner = None;
-            self.message = String::from("Player X's turn");
-        }
-
-        fn make_move(&mut self, row: usize, col: usize) {
+        pub fn make_move(&mut self, row: usize, col: usize) {
             if self.game_over || self.board[row][col] != ' ' {
                 return;
             }
@@ -82,12 +113,10 @@ pub mod tic_tac {
                 self.winner = Some(self.get_current_player().name);
                 self.get_current_player_mut().score += 1;
                 self.message = format!("Player {} wins!", current_name);
-                self.ask_continue();
             } else if self.is_board_full() {
                 self.game_over = true;
                 self.winner = None;
                 self.message = format!("It's a Draw!");
-                self.ask_continue();
             } else {
                 self.switch_player();
                 let newgame = self.get_current_player().name;
@@ -95,33 +124,7 @@ pub mod tic_tac {
             }
         }
 
-        fn ask_continue(&mut self) {
-            println!("Play again? [y/n]");
-            loop {
-                let mut input = String::new();
-                io::stdin().read_line(&mut input).unwrap();
-                let trimmed = input.trim().to_lowercase();
-
-                if let Some(c) = trimmed.chars().next() {
-                    match c {
-                        'n' => {
-                            self.quit = true;
-                            self.display_scores();
-                            break;
-                        }
-                        'y' => {
-                            self.reset();
-                            break;
-                        }
-                        _ => println!("Please enter 'y' or 'n'"),
-                    }
-                } else {
-                    println!("Please enter 'y' or 'n'")
-                }
-            }
-        }
-
-        fn check_win(&self, player: char) -> bool {
+        pub fn check_win(&self, player: char) -> bool {
             for row in 0..3 {
                 if self.board[row][0] == player
                     && self.board[row][1] == player
@@ -155,67 +158,6 @@ pub mod tic_tac {
 
         fn is_board_full(&self) -> bool {
             self.board.iter().all(|row| row.iter().all(|&c| c != ' '))
-        }
-
-        fn take_input(&self) -> (usize, usize) {
-            loop {
-                let mut input = String::new();
-                io::stdin().read_line(&mut input).unwrap();
-                match input.trim().parse::<i32>() {
-                    Ok(num) if num >= 1 && num <= 9 => {
-                        return (((num - 1) / 3) as usize, ((num - 1) % 3) as usize);
-                    }
-                    _ => println!("Please enter number between 1 and 9"),
-                }
-            }
-        }
-
-        fn draw_board(&self) {
-            println!();
-            for (i, row) in self.board.iter().enumerate() {
-                let display_row: Vec<String> = row
-                    .iter()
-                    .enumerate()
-                    .map(|(j, &cell)| {
-                        if cell == ' ' {
-                            (i * 3 + j + 1).to_string()
-                        } else {
-                            cell.to_string()
-                        }
-                    })
-                    .collect();
-                println!(
-                    " {} | {} | {}",
-                    display_row[0], display_row[1], display_row[2]
-                );
-                if i < 2 {
-                    println!("---------")
-                }
-            }
-        }
-
-        fn display_scores(&self) {
-            println!("╔════════════════════════════╗");
-            println!("║         SCORES             ║");
-            println!("╠════════════════════════════╣");
-            println!(
-                "║ Player {} : {:2}             ║",
-                self.player_one.name, self.player_one.score
-            );
-            println!(
-                "║ Player {} : {:2}             ║",
-                self.player_two.name, self.player_two.score
-            );
-            println!("╚════════════════════════════╝");
-        }
-        pub fn play(&mut self) {
-            println!("{}", self.message);
-            while !self.quit {
-                self.draw_board();
-                let (row, col) = self.take_input();
-                self.make_move(row, col);
-                println!("{}", self.message)
-            }
         }
     }
 }
