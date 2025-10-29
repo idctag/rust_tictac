@@ -37,11 +37,17 @@ pub mod tic_tac {
                         "Scores: X = {}, O = {}",
                         self.player_one.score, self.player_two.score
                     ));
-                    if self.game_over {
-                        if ui.button("Restar").clicked() {
-                            *self = App::default()
+                    ui.horizontal(|ui| {
+                        if self.game_over {
+                            if ui.button("Restar").clicked() {
+                                self.clear_board();
+                                self.game_over = false
+                            }
+                            if ui.button("Quit").clicked() {
+                                ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+                            };
                         }
-                    }
+                    })
                 });
             });
         }
@@ -154,6 +160,14 @@ pub mod tic_tac {
             }
 
             false
+        }
+
+        fn clear_board(&mut self) {
+            for r in self.board.iter_mut() {
+                for c in r.iter_mut() {
+                    *c = ' ';
+                }
+            }
         }
 
         fn is_board_full(&self) -> bool {
