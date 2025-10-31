@@ -1,4 +1,4 @@
-use tic_tac::game::App;
+use tic_tac::App;
 
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions {
