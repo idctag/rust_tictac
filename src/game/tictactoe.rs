@@ -13,7 +13,8 @@ pub mod tic_tac {
                     ui.heading("Tic tac toe");
                     ui.label(&self.message);
                     ui.separator();
-                    ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                    ui.horizontal(|ui| {
+                        ui.add_space((ui.available_width() - 190.0) / 2.0);
                         Grid::new("tic_tac_board")
                             .spacing([20.0, 20.0])
                             .max_col_width(50.0)
@@ -23,7 +24,10 @@ pub mod tic_tac {
                                         let cell = self.board[row][col];
                                         let label =
                                             if cell == ' ' { " " } else { &cell.to_string() };
-                                        if ui.add_sized([50.0, 50.0], Button::new(label)).clicked()
+                                        if ui
+                                            .add_sized([50.0, 50.0], Button::new(label))
+                                            .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                            .clicked()
                                         {
                                             self.make_move(row, col);
                                         }
@@ -39,7 +43,7 @@ pub mod tic_tac {
                     ));
                     ui.horizontal(|ui| {
                         if self.game_over {
-                            if ui.button("Restar").clicked() {
+                            if ui.button("Restart").clicked() {
                                 self.clear_board();
                                 self.game_over = false
                             }
